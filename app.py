@@ -18,8 +18,7 @@ date_to = friday.strftime("%Y-%m-%d")
 st.subheader("Economic Calendar — Raw API Response")
 st.caption(f"Week of {date_from} to {date_to} (ET)")
 
-url = f"https://financialmodelingprep.com/api/v3/economic_calendar?from={date_from}&to={date_to}&apikey={FMP_KEY}"
-st.write("Status: requesting...")
+url = f"https://financialmodelingprep.com/stable/economic-calendar?from={date_from}&to={date_to}&apikey={FMP_KEY}"
 
 response = requests.get(url)
 st.write("Status code:", response.status_code)
