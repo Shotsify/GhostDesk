@@ -56,4 +56,3 @@ try:
 
 except Exception as e:
     st.error(f"Error fetching calendar data: {e}")
-```
