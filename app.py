@@ -1,6 +1,5 @@
 import streamlit as st
 import requests
-import pandas as pd
 import pytz
 from datetime import datetime, timedelta
 
@@ -16,21 +15,12 @@ friday = monday + timedelta(days=4)
 date_from = monday.strftime("%Y-%m-%d")
 date_to = friday.strftime("%Y-%m-%d")
 
-st.subheader("Economic Calendar — High Impact Events")
+st.subheader("Economic Calendar — Raw API Response")
 st.caption(f"Week of {date_from} to {date_to} (ET)")
 
-try:
-    url = f"https://finnhub.io/api/v1/calendar/economic?token={API_KEY}"
-    response = requests.get(url)
-    data = response.json()
+url = f"https://finnhub.io/api/v1/calendar/economic?from={date_from}&to={date_to}&token={API_KEY}"
+st.write("Requesting URL:", url.replace(API_KEY, "***"))
 
-    events = data.get("economicCalendar", [])
-
-    if not events:
-        st.warning("No calendar data returned.")
-    else:
-        df = pd.DataFrame(events)
-        st.write("Raw data sample:", df.head())
-
-except Exception as e:
-    st.error(f"Error: {e}")
+response = requests.get(url)
+st.write("Status code:", response.status_code)
+st.write("Raw response:", response.json())
