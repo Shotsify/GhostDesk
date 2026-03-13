@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 st.set_page_config(page_title="Kairos Ghost Desk", layout="wide")
 st.title("Kairos Ghost Desk")
 
-API_KEY = st.secrets["FINNHUB_API_KEY"]
+FMP_KEY = st.secrets["FMP_API_KEY"]
 
 et = pytz.timezone("America/New_York")
 today = datetime.now(et)
@@ -18,8 +18,8 @@ date_to = friday.strftime("%Y-%m-%d")
 st.subheader("Economic Calendar — Raw API Response")
 st.caption(f"Week of {date_from} to {date_to} (ET)")
 
-url = f"https://finnhub.io/api/v1/calendar/economic?from={date_from}&to={date_to}&token={API_KEY}"
-st.write("Requesting URL:", url.replace(API_KEY, "***"))
+url = f"https://financialmodelingprep.com/api/v3/economic_calendar?from={date_from}&to={date_to}&apikey={FMP_KEY}"
+st.write("Status: requesting...")
 
 response = requests.get(url)
 st.write("Status code:", response.status_code)
