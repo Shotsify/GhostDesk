@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 import requests
 from io import StringIO
 
@@ -55,16 +56,71 @@ try:
         st.write(f"Long: {l_long:,} | Short: {l_short:,}")
 
     st.divider()
-    st.markdown("**Last 8 Weeks — Net Positioning**")
 
-    hist = df.head(8).copy()
+    hist = df.head(16).copy()
     hist["Dealer Net"] = hist["dealer_positions_long_all"].astype(int) - hist["dealer_positions_short_all"].astype(int)
     hist["Asset Mgr Net"] = hist["asset_mgr_positions_long"].astype(int) - hist["asset_mgr_positions_short"].astype(int)
     hist["Lev Funds Net"] = hist["lev_money_positions_long"].astype(int) - hist["lev_money_positions_short"].astype(int)
-    hist["Date"] = hist["report_date_as_yyyy_mm_dd"].dt.strftime("%b %d")
-    hist = hist[["Date", "Dealer Net", "Asset Mgr Net", "Lev Funds Net"]].set_index("Date")
+    hist = hist.sort_values("report_date_as_yyyy_mm_dd", ascending=True)
 
-    st.dataframe(hist, use_container_width=True)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Asset Mgr Net"], name="Asset Manager", line=dict(color="#3B8BD4", width=2)))
+    fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Lev Funds Net"], name="Leveraged Funds", line=dict(color="#EF9F27", width=2)))
+    fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Dealer Net"], name="Dealer", line=dict(color="#888780", width=1.5, dash="dot")))
+    fig.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
+    fig.update_layout(
+        title="16-Week Net Positioning Trend",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Net Contracts"),
+        height=380
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("**Last 8 Weeks — Net Positioning**")
+    table = df.head(8).copy()
+    table["Dealer Net"] = table["dealer_positions_long_all"].astype(int) - table["dealer_positions_short_all"].astype(int)
+    table["Asset Mgr Net"] = table["asset_mgr_positions_long"].astype(int) - table["asset_mgr_positions_short"].astype(int)
+    table["Lev Funds Net"] = table["lev_money_positions_long"].astype(int) - table["lev_money_positions_short"].astype(int)
+    table["Date"] = table["report_date_as_yyyy_mm_dd"].dt.strftime("%b %d")
+    table = table[["Date", "Dealer Net", "Asset Mgr Net", "Lev Funds Net"]].set_index("Date")
+    st.dataframe(table, use_container_width=True)
 
 except Exception as e:
     st.error(f"Error: {e}")
+
+st.divider()
+
+st.subheader("Weekly Red Folder Events")
+st.caption("Enter this week's high impact USD events manually.")
+
+if "events" not in st.session_state:
+    st.session_state.events = []
+
+with st.form("event_form", clear_on_submit=True):
+    col_a, col_b, col_c = st.columns([2, 1, 1])
+    with col_a:
+        event_name = st.text_input("Event", placeholder="e.g. CPI (YoY)")
+    with col_b:
+        event_day = st.text_input("Day / Time (ET)", placeholder="e.g. Wed 8:30am")
+    with col_c:
+        event_forecast = st.text_input("Forecast", placeholder="e.g. 2.9%")
+    submitted = st.form_submit_button("Add Event")
+    if submitted and event_name:
+        st.session_state.events.append({
+            "Event": event_name,
+            "Day / Time (ET)": event_day,
+            "Forecast": event_forecast
+        })
+
+if st.session_state.events:
+    events_df = pd.DataFrame(st.session_state.events)
+    st.dataframe(events_df, use_container_width=True, hide_index=True)
+    if st.button("Clear all events"):
+        st.session_state.events = []
+        st.rerun()
+else:
+    st.info("No events added yet. Use the form above to add this week's red folder events.")
