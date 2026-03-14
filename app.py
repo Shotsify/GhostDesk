@@ -70,4 +70,42 @@ try:
     fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Dealer Net"], name="Dealer", line=dict(color="#888780", width=1.5, dash="dot")))
     fig.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
     fig.update_layout(
-        title="16-Week Net
+        title="16-Week Net Positioning Trend",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Net Contracts"),
+        height=380
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("**Last 8 Weeks — Net Positioning**")
+    table = df.head(8).copy()
+    table["Dealer Net"] = table["dealer_positions_long_all"].astype(int) - table["dealer_positions_short_all"].astype(int)
+    table["Asset Mgr Net"] = table["asset_mgr_positions_long"].astype(int) - table["asset_mgr_positions_short"].astype(int)
+    table["Lev Funds Net"] = table["lev_money_positions_long"].astype(int) - table["lev_money_positions_short"].astype(int)
+    table["Date"] = table["report_date_as_yyyy_mm_dd"].dt.strftime("%b %d")
+    table = table[["Date", "Dealer Net", "Asset Mgr Net", "Lev Funds Net"]].set_index("Date")
+    st.dataframe(table, use_container_width=True)
+
+except Exception as e:
+    st.error(f"COT Error: {e}")
+
+# --- ECONOMIC CALENDAR ---
+st.divider()
+st.subheader("Weekly Red Folder Events — Forex Factory")
+
+try:
+    ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.csv"
+    ff_response = requests.get(ff_url, timeout=10)
+    ff_df = pd.read_csv(StringIO(ff_response.text))
+
+    st.write("Status code:", ff_response.status_code)
+    st.write("Columns:", list(ff_df.columns))
+    st.write("Rows:", len(ff_df))
+    st.dataframe(ff_df.head(20))
+
+except Exception as e:
+    st.error(f"Calendar Error: {e}")
