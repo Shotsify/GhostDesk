@@ -6,3 +6,5 @@ finnhub-python
 pytz
 cot_reports
 yfinance
+beautifulsoup4
+lxml
