@@ -7,11 +7,12 @@ from io import StringIO
 st.set_page_config(page_title="Kairos Ghost Desk", layout="wide")
 st.title("Kairos Ghost Desk")
 
+# --- COT DATA ---
 st.subheader("COT — NQ Nasdaq-100 Consolidated Positioning")
 
 try:
     url = "https://publicreporting.cftc.gov/resource/gpe5-46if.csv?$limit=50000&$where=market_and_exchange_names=%27NASDAQ-100%20Consolidated%20-%20CHICAGO%20MERCANTILE%20EXCHANGE%27&$order=report_date_as_yyyy_mm_dd%20DESC"
-    response = requests.get(url)
+    response = requests.get(url, timeout=30)
     df = pd.read_csv(StringIO(response.text))
 
     df["report_date_as_yyyy_mm_dd"] = pd.to_datetime(df["report_date_as_yyyy_mm_dd"])
@@ -69,58 +70,4 @@ try:
     fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Dealer Net"], name="Dealer", line=dict(color="#888780", width=1.5, dash="dot")))
     fig.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
     fig.update_layout(
-        title="16-Week Net Positioning Trend",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-        xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
-        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Net Contracts"),
-        height=380
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("**Last 8 Weeks — Net Positioning**")
-    table = df.head(8).copy()
-    table["Dealer Net"] = table["dealer_positions_long_all"].astype(int) - table["dealer_positions_short_all"].astype(int)
-    table["Asset Mgr Net"] = table["asset_mgr_positions_long"].astype(int) - table["asset_mgr_positions_short"].astype(int)
-    table["Lev Funds Net"] = table["lev_money_positions_long"].astype(int) - table["lev_money_positions_short"].astype(int)
-    table["Date"] = table["report_date_as_yyyy_mm_dd"].dt.strftime("%b %d")
-    table = table[["Date", "Dealer Net", "Asset Mgr Net", "Lev Funds Net"]].set_index("Date")
-    st.dataframe(table, use_container_width=True)
-
-except Exception as e:
-    st.error(f"Error: {e}")
-
-st.divider()
-
-st.subheader("Weekly Red Folder Events")
-st.caption("Enter this week's high impact USD events manually.")
-
-if "events" not in st.session_state:
-    st.session_state.events = []
-
-with st.form("event_form", clear_on_submit=True):
-    col_a, col_b, col_c = st.columns([2, 1, 1])
-    with col_a:
-        event_name = st.text_input("Event", placeholder="e.g. CPI (YoY)")
-    with col_b:
-        event_day = st.text_input("Day / Time (ET)", placeholder="e.g. Wed 8:30am")
-    with col_c:
-        event_forecast = st.text_input("Forecast", placeholder="e.g. 2.9%")
-    submitted = st.form_submit_button("Add Event")
-    if submitted and event_name:
-        st.session_state.events.append({
-            "Event": event_name,
-            "Day / Time (ET)": event_day,
-            "Forecast": event_forecast
-        })
-
-if st.session_state.events:
-    events_df = pd.DataFrame(st.session_state.events)
-    st.dataframe(events_df, use_container_width=True, hide_index=True)
-    if st.button("Clear all events"):
-        st.session_state.events = []
-        st.rerun()
-else:
-    st.info("No events added yet. Use the form above to add this week's red folder events.")
+        title="16-Week Net
