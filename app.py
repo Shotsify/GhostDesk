@@ -97,8 +97,8 @@ st.subheader("Weekly Red Folder Events")
 
 try:
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.csv"
-    ff_response = requests.get(ff_url, timeout=10)
-    ff_df = pd.read_csv(StringIO(ff_response.text))
+ff_response = requests.get(ff_url, timeout=10)
+ff_df = pd.read_csv(StringIO(ff_response.text), on_bad_lines="skip")
     ff_df = ff_df[ff_df["Country"] == "USD"]
     ff_df = ff_df[ff_df["Impact"] == "High"]
     ff_df = ff_df[["Title", "Date", "Time", "Forecast", "Previous"]].copy()
