@@ -12,7 +12,7 @@ import re
 from bs4 import BeautifulSoup
 
 st.set_page_config(page_title="Kairos Ghost Desk", layout="wide")
-st.title("Kairos Ghost Desk")
+st.markdown("<h1 style='text-align: center;'>Kairos Ghost Desk Terminal</h1>", unsafe_allow_html=True)
 
 et = pytz.timezone("America/New_York")
 today = datetime.now(et)
