@@ -16,8 +16,11 @@ date_to = friday.strftime("%Y-%m-%d")
 st.subheader("Economic Calendar — Raw API Response")
 st.caption(f"Week of {date_from} to {date_to} (ET)")
 
-url = f"https://www.jblanked.com/news/api/forex-factory/calendar/week/?currency=USD&impact=High"
+JBLANKED_KEY = st.secrets["JBLANKED_API_KEY"]
 
-response = requests.get(url)
+url = "https://www.jblanked.com/news/api/forex-factory/calendar/week/?currency=USD&impact=High"
+headers = {"Authorization": f"Api-Key 8ImADmvv0o9YiTiTbYUWDuJvg65OfsLx"}
+
+response = requests.get(url, headers=headers)
 st.write("Status code:", response.status_code)
 st.write("Raw response:", response.json())
