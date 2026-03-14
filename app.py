@@ -159,4 +159,99 @@ try:
         return avg, pct_pos
 
     avg_5m, pos_5m = monthly_avg(raw, years_5)
-    avg_10m,
+    avg_10m, pos_10m = monthly_avg(raw, years_10)
+    avg_15m, pos_15m = monthly_avg(raw, years_15)
+
+    months = list(range(1, 13))
+    fig_m = go.Figure()
+    fig_m.add_trace(go.Bar(x=month_names, y=[avg_15m.get(m, 0) for m in months], name="15Y Avg", marker_color="#4a4a4a", opacity=0.7))
+    fig_m.add_trace(go.Bar(x=month_names, y=[avg_10m.get(m, 0) for m in months], name="10Y Avg", marker_color="#888780", opacity=0.85))
+    fig_m.add_trace(go.Bar(x=month_names, y=[avg_5m.get(m, 0) for m in months], name="5Y Avg", marker_color="#3B8BD4"))
+    fig_m.add_vline(x=current_month - 1, line_color="#EF9F27", line_width=2, annotation_text="Now", annotation_position="top")
+    fig_m.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
+    fig_m.update_layout(
+        title="Monthly Seasonal Returns — 5Y / 10Y / 15Y",
+        barmode="group",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Avg Return %"),
+        height=380
+    )
+    st.plotly_chart(fig_m, use_container_width=True)
+
+    st.markdown("**Monthly Detail — Current Month Highlighted**")
+    month_table = pd.DataFrame({
+        "Month": month_names,
+        "5Y Avg %": [round(avg_5m.get(m, 0), 2) for m in months],
+        "5Y % Positive": [round(pos_5m.get(m, 0), 1) for m in months],
+        "10Y Avg %": [round(avg_10m.get(m, 0), 2) for m in months],
+        "10Y % Positive": [round(pos_10m.get(m, 0), 1) for m in months],
+        "15Y Avg %": [round(avg_15m.get(m, 0), 2) for m in months],
+        "15Y % Positive": [round(pos_15m.get(m, 0), 1) for m in months],
+    })
+    st.dataframe(
+        month_table.style.apply(
+            lambda row: ["background-color: rgba(59,139,212,0.2)" if row.name == current_month - 1 else "" for _ in row],
+            axis=1
+        ),
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.divider()
+
+    def weekly_avg(data, start_year):
+        subset = data[data["Year"] >= start_year]
+        weekly = subset.groupby(["Year","Week"])["Return"].sum().reset_index()
+        avg = weekly.groupby("Week")["Return"].mean() * 100
+        pct_pos = weekly.groupby("Week")["Return"].apply(lambda x: (x > 0).mean() * 100)
+        return avg, pct_pos
+
+    avg_5w, pos_5w = weekly_avg(raw, years_5)
+    avg_10w, pos_10w = weekly_avg(raw, years_10)
+    avg_15w, pos_15w = weekly_avg(raw, years_15)
+
+    weeks = sorted(avg_15w.index.tolist())
+    fig_w = go.Figure()
+    fig_w.add_trace(go.Scatter(x=weeks, y=[avg_15w.get(w, 0) for w in weeks], name="15Y Avg", line=dict(color="#4a4a4a", width=1.5)))
+    fig_w.add_trace(go.Scatter(x=weeks, y=[avg_10w.get(w, 0) for w in weeks], name="10Y Avg", line=dict(color="#888780", width=1.5)))
+    fig_w.add_trace(go.Scatter(x=weeks, y=[avg_5w.get(w, 0) for w in weeks], name="5Y Avg", line=dict(color="#3B8BD4", width=2)))
+    fig_w.add_vline(x=current_week, line_color="#EF9F27", line_width=2, annotation_text="Now", annotation_position="top right")
+    fig_w.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
+    fig_w.update_layout(
+        title="Weekly Seasonal Returns — 5Y / 10Y / 15Y",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Week of Year"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Avg Return %"),
+        height=380
+    )
+    st.plotly_chart(fig_w, use_container_width=True)
+
+    st.markdown("**Weekly Detail — Current Week & Surrounding 4 Weeks**")
+    week_range = range(max(1, current_week - 4), min(53, current_week + 5))
+    week_table = pd.DataFrame({
+        "Week": list(week_range),
+        "5Y Avg %": [round(avg_5w.get(w, 0), 2) for w in week_range],
+        "5Y % Positive": [round(pos_5w.get(w, 0), 1) for w in week_range],
+        "10Y Avg %": [round(avg_10w.get(w, 0), 2) for w in week_range],
+        "10Y % Positive": [round(pos_10w.get(w, 0), 1) for w in week_range],
+        "15Y Avg %": [round(avg_15w.get(w, 0), 2) for w in week_range],
+        "15Y % Positive": [round(pos_15w.get(w, 0), 1) for w in week_range],
+    })
+    st.dataframe(
+        week_table.style.apply(
+            lambda row: ["background-color: rgba(59,139,212,0.2)" if row["Week"] == current_week else "" for _ in row],
+            axis=1
+        ),
+        use_container_width=True,
+        hide_index=False
+    )
+
+except Exception as e:
+    st.error(f"Seasonal Error: {e}")
