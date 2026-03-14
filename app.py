@@ -5,6 +5,8 @@ import requests
 from io import StringIO
 import pytz
 from datetime import datetime
+import yfinance as yf
+import numpy as np
 
 st.set_page_config(page_title="Kairos Ghost Desk", layout="wide")
 st.title("Kairos Ghost Desk")
@@ -107,16 +109,54 @@ try:
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.csv"
     ff_response = requests.get(ff_url, timeout=10)
     ff_df = pd.read_csv(StringIO(ff_response.text))
-
     ff_df = ff_df[ff_df["Country"] == "USD"]
     ff_df = ff_df[ff_df["Impact"] == "High"]
     ff_df = ff_df[["Title", "Date", "Time", "Forecast", "Previous"]].copy()
     ff_df = ff_df.reset_index(drop=True)
-
     if ff_df.empty:
         st.info("No high impact USD events this week.")
     else:
         st.dataframe(ff_df, use_container_width=True, hide_index=True)
-
 except Exception as e:
     st.error(f"Calendar Error: {e}")
+
+# --- SEASONAL TENDENCIES ---
+st.divider()
+st.subheader("NQ Seasonal Tendencies")
+st.caption("Calculated from NQ futures price history via Yahoo Finance (NQ=F)")
+
+@st.cache_data(ttl=86400)
+def load_seasonal_data():
+    ticker = yf.Ticker("NQ=F")
+    raw = ticker.history(period="20y")
+    raw.index = pd.to_datetime(raw.index)
+    raw = raw[["Close"]].copy()
+    raw["Return"] = raw["Close"].pct_change()
+    raw["Month"] = raw.index.month
+    raw["Week"] = raw.index.isocalendar().week.astype(int)
+    raw["Year"] = raw.index.year
+    return raw
+
+try:
+    with st.spinner("Loading seasonal data..."):
+        raw = load_seasonal_data()
+
+    now = datetime.now()
+    current_month = now.month
+    current_week = now.isocalendar()[1]
+
+    years_5 = now.year - 5
+    years_10 = now.year - 10
+    years_15 = now.year - 15
+
+    month_names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+
+    def monthly_avg(data, start_year):
+        subset = data[data["Year"] >= start_year]
+        monthly = subset.groupby(["Year","Month"])["Return"].sum().reset_index()
+        avg = monthly.groupby("Month")["Return"].mean() * 100
+        pct_pos = monthly.groupby("Month")["Return"].apply(lambda x: (x > 0).mean() * 100)
+        return avg, pct_pos
+
+    avg_5m, pos_5m = monthly_avg(raw, years_5)
+    avg_10m,
