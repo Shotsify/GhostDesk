@@ -9,7 +9,7 @@ import yfinance as yf
 import numpy as np
 import math
 import re
-import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
 
 st.set_page_config(page_title="Kairos Ghost Desk", layout="wide")
 st.title("Kairos Ghost Desk")
@@ -66,13 +66,30 @@ try:
     hist["Lev Funds Net"] = hist["lev_money_positions_long"].astype(int) - hist["lev_money_positions_short"].astype(int)
     hist = hist.sort_values("report_date_as_yyyy_mm_dd", ascending=True)
 
+    def colored_bars(y_vals):
+        return ["#1D9E75" if v >= 0 else "#E24B4A" for v in y_vals]
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Asset Mgr Net"], name="Asset Manager", line=dict(color="#3B8BD4", width=2)))
-    fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Lev Funds Net"], name="Leveraged Funds", line=dict(color="#EF9F27", width=2)))
-    fig.add_trace(go.Scatter(x=hist["report_date_as_yyyy_mm_dd"], y=hist["Dealer Net"], name="Dealer", line=dict(color="#888780", width=1.5, dash="dot")))
+    fig.add_trace(go.Bar(
+        x=hist["report_date_as_yyyy_mm_dd"], y=hist["Asset Mgr Net"],
+        name="Asset Manager",
+        marker_color=colored_bars(hist["Asset Mgr Net"])
+    ))
+    fig.add_trace(go.Bar(
+        x=hist["report_date_as_yyyy_mm_dd"], y=hist["Lev Funds Net"],
+        name="Leveraged Funds",
+        marker_color=colored_bars(hist["Lev Funds Net"])
+    ))
+    fig.add_trace(go.Bar(
+        x=hist["report_date_as_yyyy_mm_dd"], y=hist["Dealer Net"],
+        name="Dealer",
+        marker_color=colored_bars(hist["Dealer Net"]),
+        opacity=0.6
+    ))
     fig.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
     fig.update_layout(
-        title="16-Week Net Positioning Trend",
+        title="16-Week Net Positioning",
+        barmode="group",
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
@@ -89,7 +106,18 @@ try:
     table["Lev Funds Net"] = table["lev_money_positions_long"].astype(int) - table["lev_money_positions_short"].astype(int)
     table["Date"] = table["report_date_as_yyyy_mm_dd"].dt.strftime("%b %d")
     table = table[["Date", "Dealer Net", "Asset Mgr Net", "Lev Funds Net"]].set_index("Date")
-    st.dataframe(table, use_container_width=True)
+
+    def color_net(val):
+        if val > 0:
+            return "color: #1D9E75"
+        elif val < 0:
+            return "color: #E24B4A"
+        return ""
+
+    st.dataframe(
+        table.style.applymap(color_net),
+        use_container_width=True
+    )
 
 except Exception as e:
     st.error(f"COT Error: {e}")
@@ -147,8 +175,6 @@ st.subheader("Weekly Red Folder Events")
 try:
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
     ff_response = requests.get(ff_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-    
-    from bs4 import BeautifulSoup
     soup = BeautifulSoup(ff_response.content, "xml")
 
     events = []
@@ -159,12 +185,38 @@ try:
             continue
         if country.get_text(strip=True) != "USD" or impact.get_text(strip=True) != "High":
             continue
+
+        title = event.find("title").get_text(strip=True) if event.find("title") else ""
+        date = event.find("date").get_text(strip=True) if event.find("date") else ""
+        time_et = event.find("time").get_text(strip=True) if event.find("time") else ""
+        forecast_raw = event.find("forecast").get_text(strip=True) if event.find("forecast") else ""
+        previous_raw = event.find("previous").get_text(strip=True) if event.find("previous") else ""
+
+        def parse_val(s):
+            try:
+                return float(s.replace("%","").replace("K","").replace("M","").replace("B","").replace("T","").replace(",","").strip())
+            except:
+                return None
+
+        f_val = parse_val(forecast_raw)
+        p_val = parse_val(previous_raw)
+
+        if f_val is not None and p_val is not None:
+            if f_val > p_val:
+                forecast_display = f"🟢 {forecast_raw}"
+            elif f_val < p_val:
+                forecast_display = f"🔴 {forecast_raw}"
+            else:
+                forecast_display = forecast_raw
+        else:
+            forecast_display = forecast_raw
+
         events.append({
-            "Event": event.find("title").get_text(strip=True) if event.find("title") else "",
-            "Date": event.find("date").get_text(strip=True) if event.find("date") else "",
-            "Time (ET)": event.find("time").get_text(strip=True) if event.find("time") else "",
-            "Forecast": event.find("forecast").get_text(strip=True) if event.find("forecast") else "",
-            "Previous": event.find("previous").get_text(strip=True) if event.find("previous") else "",
+            "Event": title,
+            "Date": date,
+            "Time (ET)": time_et,
+            "Forecast": forecast_display,
+            "Previous": previous_raw
         })
 
     if not events:
@@ -236,6 +288,17 @@ try:
     )
     st.plotly_chart(fig_m, use_container_width=True)
 
+    def color_avg(val):
+        try:
+            num = float(val.replace("%",""))
+            if num > 0:
+                return "color: #1D9E75"
+            elif num < 0:
+                return "color: #E24B4A"
+        except:
+            pass
+        return ""
+
     st.markdown("**Monthly Detail — Current Month Highlighted**")
     month_table = pd.DataFrame({
         "Month": month_names,
@@ -246,11 +309,15 @@ try:
         "15Y Avg %": [f"{avg_15m.get(m, 0):.2f}%" for m in months],
         "15Y Pos": [f"{pos_15m.get(m, 0):.0f}%" for m in months],
     })
+
+    def style_month_table(row):
+        base = ["background-color: rgba(59,139,212,0.2)" if row.name == current_month - 1 else "" for _ in row]
+        return base
+
     st.dataframe(
-        month_table.style.apply(
-            lambda row: ["background-color: rgba(59,139,212,0.2)" if row.name == current_month - 1 else "" for _ in row],
-            axis=1
-        ),
+        month_table.style
+            .apply(style_month_table, axis=1)
+            .applymap(color_avg, subset=["5Y Avg %", "10Y Avg %", "15Y Avg %"]),
         use_container_width=True,
         hide_index=True
     )
@@ -297,14 +364,19 @@ try:
         "15Y Avg %": [f"{avg_15w.get(w, 0):.2f}%" for w in week_range],
         "15Y Pos": [f"{pos_15w.get(w, 0):.0f}%" for w in week_range],
     })
+
+    def style_week_table(row):
+        return ["background-color: rgba(59,139,212,0.2)" if row["Week"] == current_week else "" for _ in row]
+
     st.dataframe(
-        week_table.style.apply(
-            lambda row: ["background-color: rgba(59,139,212,0.2)" if row["Week"] == current_week else "" for _ in row],
-            axis=1
-        ),
+        week_table.style
+            .apply(style_week_table, axis=1)
+            .applymap(color_avg, subset=["5Y Avg %", "10Y Avg %", "15Y Avg %"]),
         use_container_width=True,
         hide_index=True
     )
 
+except Exception as e:
+    st.error(f"Seasonal Error: {e}")
 except Exception as e:
     st.error(f"Seasonal Error: {e}")
