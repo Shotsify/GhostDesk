@@ -7,6 +7,9 @@ import pytz
 from datetime import datetime
 import yfinance as yf
 import numpy as np
+import math
+import re
+import xml.etree.ElementTree as ET
 
 st.set_page_config(page_title="Kairos Ghost Desk", layout="wide")
 st.title("Kairos Ghost Desk")
@@ -90,6 +93,7 @@ try:
 
 except Exception as e:
     st.error(f"COT Error: {e}")
+
 # --- ET CLOCK ---
 st.divider()
 st.subheader("Current Time — Eastern")
@@ -99,7 +103,6 @@ hour = now_et.hour % 12
 minute = now_et.minute
 second = now_et.second
 
-import math
 hour_angle = math.radians((hour * 30) + (minute * 0.5) - 90)
 minute_angle = math.radians((minute * 6) + (second * 0.1) - 90)
 second_angle = math.radians((second * 6) - 90)
@@ -136,15 +139,16 @@ svg = f"""
 col_clock, col_spacer = st.columns([1, 4])
 with col_clock:
     st.markdown(svg, unsafe_allow_html=True)
+
 # --- ECONOMIC CALENDAR ---
 st.divider()
 st.subheader("Weekly Red Folder Events")
 
 try:
-    import xml.etree.ElementTree as ET
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
     ff_response = requests.get(ff_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-    root = ET.fromstring(ff_response.content)
+    cleaned = re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;)', '&amp;', ff_response.text)
+    root = ET.fromstring(cleaned.encode("windows-1252"))
 
     events = []
     for event in root.findall("event"):
@@ -173,6 +177,7 @@ try:
 
 except Exception as e:
     st.error(f"Calendar Error: {e}")
+
 # --- SEASONAL TENDENCIES ---
 st.divider()
 st.subheader("NQ Seasonal Tendencies")
