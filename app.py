@@ -22,46 +22,37 @@ try:
     url = "https://publicreporting.cftc.gov/resource/gpe5-46if.csv?$limit=50000&$where=market_and_exchange_names=%27NASDAQ-100%20Consolidated%20-%20CHICAGO%20MERCANTILE%20EXCHANGE%27&$order=report_date_as_yyyy_mm_dd%20DESC"
     response = requests.get(url, timeout=30)
     df = pd.read_csv(StringIO(response.text))
-
     df["report_date_as_yyyy_mm_dd"] = pd.to_datetime(df["report_date_as_yyyy_mm_dd"])
     df = df.sort_values("report_date_as_yyyy_mm_dd", ascending=False).reset_index(drop=True)
-
     latest = df.iloc[0]
     prev = df.iloc[1]
-
     report_date = latest["report_date_as_yyyy_mm_dd"].strftime("%B %d, %Y")
     st.caption(f"Report date: {report_date} (released Friday, 3:30pm ET)")
 
     col1, col2, col3 = st.columns(3)
-
     with col1:
         st.markdown("**Dealer / Intermediary**")
         d_long = int(latest["dealer_positions_long_all"])
         d_short = int(latest["dealer_positions_short_all"])
         d_net = d_long - d_short
         d_net_prev = int(prev["dealer_positions_long_all"]) - int(prev["dealer_positions_short_all"])
-        d_delta = d_net - d_net_prev
-        st.metric("Net Position", f"{d_net:,}", delta=f"{d_delta:,}")
+        st.metric("Net Position", f"{d_net:,}", delta=f"{d_net - d_net_prev:,}")
         st.write(f"Long: {d_long:,} | Short: {d_short:,}")
-
     with col2:
         st.markdown("**Asset Manager / Institutional**")
         a_long = int(latest["asset_mgr_positions_long"])
         a_short = int(latest["asset_mgr_positions_short"])
         a_net = a_long - a_short
         a_net_prev = int(prev["asset_mgr_positions_long"]) - int(prev["asset_mgr_positions_short"])
-        a_delta = a_net - a_net_prev
-        st.metric("Net Position", f"{a_net:,}", delta=f"{a_delta:,}")
+        st.metric("Net Position", f"{a_net:,}", delta=f"{a_net - a_net_prev:,}")
         st.write(f"Long: {a_long:,} | Short: {a_short:,}")
-
     with col3:
         st.markdown("**Leveraged Funds**")
         l_long = int(latest["lev_money_positions_long"])
         l_short = int(latest["lev_money_positions_short"])
         l_net = l_long - l_short
         l_net_prev = int(prev["lev_money_positions_long"]) - int(prev["lev_money_positions_short"])
-        l_delta = l_net - l_net_prev
-        st.metric("Net Position", f"{l_net:,}", delta=f"{l_delta:,}")
+        st.metric("Net Position", f"{l_net:,}", delta=f"{l_net - l_net_prev:,}")
         st.write(f"Long: {l_long:,} | Short: {l_short:,}")
 
     st.divider()
@@ -79,8 +70,7 @@ try:
     fig.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
     fig.update_layout(
         title="16-Week Net Positioning Trend",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
@@ -144,7 +134,6 @@ try:
     now = datetime.now()
     current_month = now.month
     current_week = now.isocalendar()[1]
-
     years_5 = now.year - 5
     years_10 = now.year - 10
     years_15 = now.year - 15
@@ -172,8 +161,7 @@ try:
     fig_m.update_layout(
         title="Monthly Seasonal Returns — 5Y / 10Y / 15Y",
         barmode="group",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         xaxis=dict(gridcolor="rgba(255,255,255,0.05)"),
@@ -185,12 +173,12 @@ try:
     st.markdown("**Monthly Detail — Current Month Highlighted**")
     month_table = pd.DataFrame({
         "Month": month_names,
-        "5Y Avg %": [round(avg_5m.get(m, 0), 2) for m in months],
-        "5Y % Positive": [round(pos_5m.get(m, 0), 1) for m in months],
-        "10Y Avg %": [round(avg_10m.get(m, 0), 2) for m in months],
-        "10Y % Positive": [round(pos_10m.get(m, 0), 1) for m in months],
-        "15Y Avg %": [round(avg_15m.get(m, 0), 2) for m in months],
-        "15Y % Positive": [round(pos_15m.get(m, 0), 1) for m in months],
+        "5Y Avg %": [f"{avg_5m.get(m, 0):.2f}%" for m in months],
+        "5Y Pos": [f"{pos_5m.get(m, 0):.0f}%" for m in months],
+        "10Y Avg %": [f"{avg_10m.get(m, 0):.2f}%" for m in months],
+        "10Y Pos": [f"{pos_10m.get(m, 0):.0f}%" for m in months],
+        "15Y Avg %": [f"{avg_15m.get(m, 0):.2f}%" for m in months],
+        "15Y Pos": [f"{pos_15m.get(m, 0):.0f}%" for m in months],
     })
     st.dataframe(
         month_table.style.apply(
@@ -223,8 +211,7 @@ try:
     fig_w.add_hline(y=0, line_color="rgba(255,255,255,0.2)", line_width=1)
     fig_w.update_layout(
         title="Weekly Seasonal Returns — 5Y / 10Y / 15Y",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="white"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
         xaxis=dict(gridcolor="rgba(255,255,255,0.05)", title="Week of Year"),
@@ -237,12 +224,12 @@ try:
     week_range = range(max(1, current_week - 4), min(53, current_week + 5))
     week_table = pd.DataFrame({
         "Week": list(week_range),
-        "5Y Avg %": [round(avg_5w.get(w, 0), 2) for w in week_range],
-        "5Y % Positive": [round(pos_5w.get(w, 0), 1) for w in week_range],
-        "10Y Avg %": [round(avg_10w.get(w, 0), 2) for w in week_range],
-        "10Y % Positive": [round(pos_10w.get(w, 0), 1) for w in week_range],
-        "15Y Avg %": [round(avg_15w.get(w, 0), 2) for w in week_range],
-        "15Y % Positive": [round(pos_15w.get(w, 0), 1) for w in week_range],
+        "5Y Avg %": [f"{avg_5w.get(w, 0):.2f}%" for w in week_range],
+        "5Y Pos": [f"{pos_5w.get(w, 0):.0f}%" for w in week_range],
+        "10Y Avg %": [f"{avg_10w.get(w, 0):.2f}%" for w in week_range],
+        "10Y Pos": [f"{pos_10w.get(w, 0):.0f}%" for w in week_range],
+        "15Y Avg %": [f"{avg_15w.get(w, 0):.2f}%" for w in week_range],
+        "15Y Pos": [f"{pos_15w.get(w, 0):.0f}%" for w in week_range],
     })
     st.dataframe(
         week_table.style.apply(
@@ -250,7 +237,7 @@ try:
             axis=1
         ),
         use_container_width=True,
-        hide_index=False
+        hide_index=True
     )
 
 except Exception as e:
