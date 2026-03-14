@@ -147,26 +147,24 @@ st.subheader("Weekly Red Folder Events")
 try:
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
     ff_response = requests.get(ff_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-    cleaned = re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;)', '&amp;', ff_response.text)
-    root = ET.fromstring(cleaned.encode("windows-1252"))
+    
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(ff_response.content, "xml")
 
     events = []
-    for event in root.findall("event"):
-        country = event.findtext("country", "").strip()
-        impact = event.findtext("impact", "").strip()
-        if country != "USD" or impact != "High":
+    for event in soup.find_all("event"):
+        country = event.find("country")
+        impact = event.find("impact")
+        if not country or not impact:
             continue
-        title = event.findtext("title", "").strip()
-        date = event.findtext("date", "").strip()
-        time_et = event.findtext("time", "").strip()
-        forecast = event.findtext("forecast", "").strip()
-        previous = event.findtext("previous", "").strip()
+        if country.get_text(strip=True) != "USD" or impact.get_text(strip=True) != "High":
+            continue
         events.append({
-            "Event": title,
-            "Date": date,
-            "Time (ET)": time_et,
-            "Forecast": forecast,
-            "Previous": previous
+            "Event": event.find("title").get_text(strip=True) if event.find("title") else "",
+            "Date": event.find("date").get_text(strip=True) if event.find("date") else "",
+            "Time (ET)": event.find("time").get_text(strip=True) if event.find("time") else "",
+            "Forecast": event.find("forecast").get_text(strip=True) if event.find("forecast") else "",
+            "Previous": event.find("previous").get_text(strip=True) if event.find("previous") else "",
         })
 
     if not events:
