@@ -5,3 +5,4 @@ plotly
 finnhub-python
 pytz
 cot_reports
+yfinance
