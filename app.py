@@ -95,18 +95,15 @@ except Exception as e:
 st.divider()
 st.subheader("Weekly Red Folder Events")
 
+st.divider()
+st.subheader("Weekly Red Folder Events")
+
 try:
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.csv"
     ff_response = requests.get(ff_url, timeout=10)
     ff_df = pd.read_csv(StringIO(ff_response.text), on_bad_lines="skip")
-    ff_df = ff_df[ff_df["Country"] == "USD"]
-    ff_df = ff_df[ff_df["Impact"] == "High"]
-    ff_df = ff_df[["Title", "Date", "Time", "Forecast", "Previous"]].copy()
-    ff_df = ff_df.reset_index(drop=True)
-    if ff_df.empty:
-        st.info("No high impact USD events this week.")
-    else:
-        st.dataframe(ff_df, use_container_width=True, hide_index=True)
+    st.write("Columns detected:", list(ff_df.columns))
+    st.dataframe(ff_df.head(5), use_container_width=True)
 except Exception as e:
     st.error(f"Calendar Error: {e}")
 
