@@ -3,9 +3,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 from io import StringIO
+import pytz
+from datetime import datetime
 
 st.set_page_config(page_title="Kairos Ghost Desk", layout="wide")
 st.title("Kairos Ghost Desk")
+
+et = pytz.timezone("America/New_York")
+today = datetime.now(et)
+st.caption(f"Last loaded: {today.strftime('%A, %B %d %Y — %I:%M %p ET')}")
 
 # --- COT DATA ---
 st.subheader("COT — NQ Nasdaq-100 Consolidated Positioning")
@@ -95,17 +101,22 @@ except Exception as e:
 
 # --- ECONOMIC CALENDAR ---
 st.divider()
-st.subheader("Weekly Red Folder Events — Forex Factory")
+st.subheader("Weekly Red Folder Events")
 
 try:
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.csv"
     ff_response = requests.get(ff_url, timeout=10)
     ff_df = pd.read_csv(StringIO(ff_response.text))
 
-    st.write("Status code:", ff_response.status_code)
-    st.write("Columns:", list(ff_df.columns))
-    st.write("Rows:", len(ff_df))
-    st.dataframe(ff_df.head(20))
+    ff_df = ff_df[ff_df["Country"] == "USD"]
+    ff_df = ff_df[ff_df["Impact"] == "High"]
+    ff_df = ff_df[["Title", "Date", "Time", "Forecast", "Previous"]].copy()
+    ff_df = ff_df.reset_index(drop=True)
+
+    if ff_df.empty:
+        st.info("No high impact USD events this week.")
+    else:
+        st.dataframe(ff_df, use_container_width=True, hide_index=True)
 
 except Exception as e:
     st.error(f"Calendar Error: {e}")
