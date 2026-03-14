@@ -99,11 +99,35 @@ try:
     import xml.etree.ElementTree as ET
     ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
     ff_response = requests.get(ff_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
-    st.write("Status:", ff_response.status_code)
-    st.write("First 200 chars:", ff_response.text[:200])
+    root = ET.fromstring(ff_response.content)
+
+    events = []
+    for event in root.findall("event"):
+        country = event.findtext("country", "").strip()
+        impact = event.findtext("impact", "").strip()
+        if country != "USD" or impact != "High":
+            continue
+        title = event.findtext("title", "").strip()
+        date = event.findtext("date", "").strip()
+        time_et = event.findtext("time", "").strip()
+        forecast = event.findtext("forecast", "").strip()
+        previous = event.findtext("previous", "").strip()
+        events.append({
+            "Event": title,
+            "Date": date,
+            "Time (ET)": time_et,
+            "Forecast": forecast,
+            "Previous": previous
+        })
+
+    if not events:
+        st.info("No high impact USD events this week.")
+    else:
+        ff_df = pd.DataFrame(events)
+        st.dataframe(ff_df, use_container_width=True, hide_index=True)
+
 except Exception as e:
     st.error(f"Calendar Error: {e}")
-
 # --- SEASONAL TENDENCIES ---
 st.divider()
 st.subheader("NQ Seasonal Tendencies")
