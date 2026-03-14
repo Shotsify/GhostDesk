@@ -90,7 +90,52 @@ try:
 
 except Exception as e:
     st.error(f"COT Error: {e}")
+# --- ET CLOCK ---
+st.divider()
+st.subheader("Current Time — Eastern")
 
+now_et = datetime.now(et)
+hour = now_et.hour % 12
+minute = now_et.minute
+second = now_et.second
+
+import math
+hour_angle = math.radians((hour * 30) + (minute * 0.5) - 90)
+minute_angle = math.radians((minute * 6) + (second * 0.1) - 90)
+second_angle = math.radians((second * 6) - 90)
+
+cx, cy, r = 100, 100, 80
+
+def hand(angle, length, width, color):
+    x = cx + length * math.cos(angle)
+    y = cy + length * math.sin(angle)
+    return f'<line x1="{cx}" y1="{cy}" x2="{x:.1f}" y2="{y:.1f}" stroke="{color}" stroke-width="{width}" stroke-linecap="round"/>'
+
+hour_marks = ""
+for i in range(12):
+    a = math.radians(i * 30)
+    x1 = cx + 70 * math.cos(a)
+    y1 = cy + 70 * math.sin(a)
+    x2 = cx + 78 * math.cos(a)
+    y2 = cy + 78 * math.sin(a)
+    w = 3 if i % 3 == 0 else 1.5
+    hour_marks += f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="#888780" stroke-width="{w}"/>'
+
+svg = f"""
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#444" stroke-width="2"/>
+  {hour_marks}
+  {hand(hour_angle, 45, 4, "#ffffff")}
+  {hand(minute_angle, 60, 2.5, "#ffffff")}
+  {hand(second_angle, 65, 1, "#EF9F27")}
+  <circle cx="{cx}" cy="{cy}" r="4" fill="#EF9F27"/>
+  <text x="{cx}" y="{cy + 100}" text-anchor="middle" fill="#888780" font-size="13" font-family="sans-serif">{now_et.strftime("%I:%M:%S %p ET")}</text>
+</svg>
+"""
+
+col_clock, col_spacer = st.columns([1, 4])
+with col_clock:
+    st.markdown(svg, unsafe_allow_html=True)
 # --- ECONOMIC CALENDAR ---
 st.divider()
 st.subheader("Weekly Red Folder Events")
