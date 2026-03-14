@@ -95,15 +95,12 @@ except Exception as e:
 st.divider()
 st.subheader("Weekly Red Folder Events")
 
-st.divider()
-st.subheader("Weekly Red Folder Events")
-
 try:
-    ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.csv"
-    ff_response = requests.get(ff_url, timeout=10)
-    ff_df = pd.read_csv(StringIO(ff_response.text), on_bad_lines="skip")
-    st.write("Columns detected:", list(ff_df.columns))
-    st.dataframe(ff_df.head(5), use_container_width=True)
+    import xml.etree.ElementTree as ET
+    ff_url = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
+    ff_response = requests.get(ff_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+    st.write("Status:", ff_response.status_code)
+    st.write("First 200 chars:", ff_response.text[:200])
 except Exception as e:
     st.error(f"Calendar Error: {e}")
 
